@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Br00d Store</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #111;
+      color: #eee;
+    }
+    header {
+      background: #000;
+      padding: 1em;
+      text-align: center;
+      font-size: 1.5em;
+      border-bottom: 2px solid #444;
+    }
+    nav {
+      text-align: right;
+      padding: 0.5em 1em;
+      background: #1a1a1a;
+    }
+    nav button {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 0.5em 1em;
+      cursor: pointer;
+    }
+    .content {
+      padding: 1em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1em;
+    }
+    .item, .detail {
+      background: #222;
+      padding: 1em;
+      border: 1px solid #333;
+    }
+    .item img, .detail img {
+      max-width: 100%;
+    }
+    button {
+      margin-top: 0.5em;
+      background: #444;
+      color: white;
+      border: none;
+      padding: 0.5em;
+      cursor: pointer;
+    }
+    input, select {
+      display: block;
+      width: 100%;
+      margin-bottom: 1em;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+    label {
+      margin-bottom: 0.5em;
+      display: block;
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    li {
+      margin-bottom: 0.8em;
+    }
+    input[type=number] {
+      width: 60px;
+      font-size: 1em;
+      padding: 0.3em;
+      margin-left: 0.5em;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <header>Br00d Denim</header>
+  <nav>
+    <button onclick="viewCart()">Koszyk (<span id="cart-count">0</span>)</button>
+  </nav>
+  <div class="content" id="main-view"></div>
+
+  <script>
+    const MAX_QTY = 5;
+
+    const items = [
+      {
+        id: 1,
+        name: "Flare Jeans Black Fade",
+        description: "Spodnie dzwony z gradientem bordo/fiolet, 100% bawełna, 12oz denim.",
+        image: "https://via.placeholder.com/400x400?text=Flare+Jeans",
+        price: 399
+      },
+      {
+        id: 2,
+        name: "Br00d Tee",
+        description: "Czarny t-shirt z logiem TR4PGL1TCH, surowy brutalizm.",
+        image: "https://via.placeholder.com/400x400?text=Tee",
+        price: 149
+      }
+    ];
+
+    // Koszyk jako tablica obiektów {id, size, quantity, price, name}
+    let cart = [];
+
+    function renderHome() {
+      const main = document.getElementById("main-view");
+      main.innerHTML = `
+        <div class="grid">
+          ${items.map(item => `
+            <div class="item">
+              <img src="${item.image}" alt="${item.name}" />
+              <h3>${item.name}</h3>
+              <p>${item.price} PLN</p>
+              <button onclick="viewDetail(${item.id})">Zobacz</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function viewDetail(id) {
+      const item = items.find(i => i.id === id);
+      const main = document.getElementById("main-view");
+      main.innerHTML = `
+        <div class="detail">
+          <img src="${item.image}" alt="${item.name}" />
+          <h2>${item.name}</h2>
+          <p>${item.description}</p>
+          <p><strong>${item.price} PLN</strong></p>
+          <label for="size-select">Rozmiar:</label>
+          <select id="size-select">
+            <option value="S">S</option>
+            <option value="M" selected>M</option>
+            <option value="L">L</option>
+          </select>
+          <button onclick="addToCart(${item.id})">Dodaj do koszyka</button>
+          <br><br>
+          <button onclick="renderHome()">← Powrót</button>
+        </div>
+      `;
+    }
+
+    function addToCart(id) {
+      const size = document.getElementById("size-select").value;
+      const item = items.find(i => i.id === id);
+
+      // Sprawdź czy ten produkt o tym rozmiarze jest już w koszyku
+      const existingIndex = cart.findIndex(i => i.id === id && i.size === size);
+
+      if(existingIndex !== -1) {
+        if(cart[existingIndex].quantity < MAX_QTY) {
+          cart[existingIndex].quantity++;
+          alert("Dodano jedną sztukę do koszyka.");
+        } else {
+          alert(`Maksymalna liczba ${MAX_QTY} sztuk dla rozmiaru ${size} została osiągnięta.`);
+        }
+      } else {
+        cart.push({
+          id: item.id,
+          name: item.name,
+          size: size,
+          price: item.price,
+          quantity: 1
+        });
+        alert("Dodano do koszyka.");
+      }
+      updateCartCount();
+    }
+
+    function updateCartCount() {
+      const totalQty = cart.reduce((sum, i) => sum + i.quantity, 0);
+      document.getElementById("cart-count").innerText = totalQty;
+    }
+
+    function viewCart() {
+      const main = document.getElementById("main-view");
+
+      if(cart.length === 0) {
+        main.innerHTML = `
+          <p>Koszyk jest pusty.</p>
+          <button onclick="renderHome()">← Powrót</button>
+        `;
+        return;
+      }
+
+      main.innerHTML = `
+        <h2>Koszyk</h2>
+        <form id="cart-form" onsubmit="event.preventDefault(); submitOrder();">
+          <ul>
+            ${cart.map((item, idx) => `
+              <li>
+                ${item.name} (${item.size}) — ${item.price} PLN x 
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="${MAX_QTY}" 
+                  value="${item.quantity}" 
+                  onchange="updateQuantity(${idx}, this.value)" 
+                  aria-label="Ilość sztuk dla ${item.name} rozmiar ${item.size}"
+                />
+                = <strong>${item.price * item.quantity} PLN</strong>
+                <button type="button" onclick="removeFromCart(${idx})" style="margin-left:10px; background:#800; padding:0.3em 0.6em; border:none; color:#fff; cursor:pointer;">Usuń</button>
+              </li>
+            `).join('')}
+          </ul>
+          <p><strong>Suma: <span id="total-price">${calculateTotal()}</span> PLN</strong></p>
+          <button type="submit">Przejdź do zamówienia</button>
+          <br><br>
+          <button type="button" onclick="renderHome()">← Powrót</button>
+        </form>
+      `;
+    }
+
+    function updateQuantity(index, value) {
+      let qty = parseInt(value);
+      if (isNaN(qty) || qty < 1) qty = 1;
+      else if (qty > MAX_QTY) {
+        qty = MAX_QTY;
+        alert(`Maksymalna liczba sztuk to ${MAX_QTY}`);
+      }
+      cart[index].quantity = qty;
+      updateCartCount();
+      document.getElementById("total-price").innerText = calculateTotal();
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCartCount();
+      viewCart();
+    }
+
+    function calculateTotal() {
+      return cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    }
+
+    function submitOrder() {
+      const main = document.getElementById("main-view");
+      main.innerHTML = `
+        <h2>Dane do zamówienia</h2>
+        <form id="order-form" onsubmit="handleOrder(event)">
+          <label for="name">Imię i nazwisko:</label>
+          <input type="text" id="name" required />
+
+          <label for="email">Email:</label>
+          <input type="email" id="email" required />
+
+          <label for="address">Adres:</label>
+          <input type="text" id="address" required />
+
+          <label for="city">Miasto:</label>
+          <input type="text" id="city" required />
+
+          <label for="zip">Kod pocztowy:</label>
+          <input type="text" id="zip" pattern="\\d{2}-\\d{3}" placeholder="00-000" required />
+
+          <h3>Podsumowanie:</h3>
+          <ul>
+            ${cart.map(item => `
+              <li>${item.name} (${item.size}) — ${item.price} PLN x ${item.quantity} = ${item.price * item.quantity} PLN</li>
+            `).join('')}
+          </ul>
+          <p><strong>Suma: ${calculateTotal()} PLN</strong></p>
+
+          <button type="submit">Zamawiam</button>
+          <br><br>
+          <button type="button" onclick="viewCart()">← Wróć</button>
+        </form>
+      `;
+    }
+
+    function handleOrder(event) {
+      event.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const address = document.getElementById("address").value.trim();
+      const city = document.getElementById("city").value.trim();
+      const zip = document.getElementById("zip").value.trim();
+
+      if (!name || !email || !address || !city || !zip) {
+        alert("Proszę uzupełnić wszystkie pola.");
+        return;
+      }
+
+      const orderSummary = cart.map(i => `${i.name} (${i.size}) x ${i.quantity}`).join("\n");
+      const total = calculateTotal();
+
+      alert(`Dziękujemy za zamówienie, ${name}!\n\nZamówienie:\n${orderSummary}\n\nAdres:\n${address}, ${zip} ${city}\n\nŁącznie: ${total} PLN`);
+
+      // Czyszczenie koszyka i powrót do strony głównej
+      cart = [];
+      updateCartCount();
+      renderHome();
+    }
+
+    // Start strony
+    renderHome();
+  </script>
+</body>
+</html>
